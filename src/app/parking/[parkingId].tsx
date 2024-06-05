@@ -1,4 +1,4 @@
-import { ParkingDetailsScreen } from '@/presentation/modules/parking/screens/parkingDetails';
+import { ParkingDetailsScreen } from '@/presentation/parkingDetails';
 
 const ParkingDetailRoute = () => {
   return <ParkingDetailsScreen />;

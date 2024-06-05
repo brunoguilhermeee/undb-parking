@@ -1,7 +1,7 @@
+import { parkingDetailsGateway } from '@/core/factory';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Skeleton } from 'moti/skeleton';
-import { useEffect, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -12,162 +12,7 @@ import {
   useColorScheme,
 } from 'react-native';
 import styled, { css, useTheme } from 'styled-components';
-
-/**
- *
- * Integração
- *
- */
-class Right<T> {
-  readonly value: T;
-
-  private constructor(value: T) {
-    this.value = value;
-  }
-
-  isLeft(): this is Left<never> {
-    return false;
-  }
-
-  isRight(): this is Right<T> {
-    return true;
-  }
-
-  static create<U>(value: U): Right<U> {
-    return new Right(value);
-  }
-}
-
-class Left<T> {
-  readonly error: T;
-
-  private constructor(error: T) {
-    this.error = error;
-  }
-
-  isLeft(): this is Left<T> {
-    return true;
-  }
-
-  isRight(): this is Right<never> {
-    return false;
-  }
-
-  static create<U>(error: U): Left<U> {
-    return new Left(error);
-  }
-}
-
-type Either<T, U> = Left<T> | Right<U>;
-
-export class Parking {
-  constructor(
-    private readonly name: string,
-    private readonly totalParkingSpaces: number,
-    private readonly availableParkingSpaces: number,
-    private readonly occupiedParkingSpaces: number,
-  ) {}
-
-  getName() {
-    return this.name;
-  }
-
-  getTotalParkingSpaces() {
-    return this.totalParkingSpaces;
-  }
-
-  getAvailableParkingSpaces() {
-    return this.availableParkingSpaces;
-  }
-
-  getOccupiedParkingSpaces() {
-    return this.occupiedParkingSpaces;
-  }
-}
-
-export class ParkingNotFound extends Error {
-  constructor() {
-    super('Estacionamento não encontrado');
-    this.name = 'ParkingNotFound';
-  }
-}
-
-export interface IParkingDetailsGateway {
-  getParkingDetails: (
-    parkingId: string,
-  ) => Promise<Either<ParkingNotFound, Parking>>;
-}
-
-export interface IParkingDetailsDTO {
-  name: string;
-  available: number;
-  occupied: number;
-  total: number;
-}
-
-export class ParkingDetailsGatewayHttp implements IParkingDetailsGateway {
-  constructor(private readonly httpClient: IHttpClient) {}
-
-  async getParkingDetails(
-    parkingId: string,
-  ): Promise<Either<ParkingNotFound, Parking>> {
-    const result = await this.httpClient.get<IParkingDetailsDTO>({
-      url: `https://undb.mock/parking/${parkingId}`,
-    });
-
-    if (!result) return Left.create(new ParkingNotFound());
-
-    return Right.create(
-      new Parking(result.name, result.total, result.available, result.occupied),
-    );
-  }
-}
-
-export interface IHttpClient {
-  get: <Result>(request: { url: string }) => Promise<Result>;
-}
-
-export class FakeHttpClient implements IHttpClient {
-  async get<Result>(request: { url: string }): Promise<Result> {
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    if (request.url.includes('/parking/1')) {
-      return {
-        name: 'Estacionamento Drogasil',
-        total: 100,
-        available: 50,
-        occupied: 50,
-      } as Result;
-    }
-
-    return {
-      name: 'Estacionamento Business Center',
-      total: 200,
-      available: 50,
-      occupied: 150,
-    } as Result;
-  }
-}
-
-function makeParkingDetailsfGatewayHttp() {
-  const client = new FakeHttpClient();
-  const parkingDetailsGateway = new ParkingDetailsGatewayHttp(client);
-  return parkingDetailsGateway;
-}
-
-const parkingDetailsGateway = makeParkingDetailsfGatewayHttp();
-
-/**
- *
- * Fim da integração
- *
- */
-
-/**
- *
- * Presentation
- *
- */
+import { useQuery } from '@tanstack/react-query';
 
 const Container = styled(SafeAreaView)`
   flex: 1;
@@ -295,27 +140,27 @@ export const ParkingDetailsScreen = () => {
   const theme = useTheme();
 
   const colorScheme = useColorScheme() ?? 'light';
-  const [parkingDetail, setParkingDetail] = useState<Parking>();
-  const [parkingDetailRequestStatus, setParkingDetailRequestStatus] = useState<
-    'idle' | 'pending'
-  >('pending');
   const { parkingId } = useLocalSearchParams();
 
-  useEffect(() => {
-    parkingDetailsGateway
-      .getParkingDetails(parkingId as string)
-      .then(result => {
-        if (result.isRight()) {
-          setParkingDetail(result.value);
-        }
-      })
-      .finally(() => {
-        setParkingDetailRequestStatus('idle');
-      });
-  }, [parkingId]);
+  const {
+    data: parkingDetail,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['parking', parkingId],
+    queryFn: () => parkingDetailsGateway.getParkingDetails(parkingId as string),
+  });
 
   function handleBack() {
     router.back();
+  }
+
+  if (error || (!isLoading && !parkingDetail)) {
+    return (
+      <Container>
+        <Text>Estacionamento não encontrado.</Text>
+      </Container>
+    );
   }
 
   return (
@@ -334,7 +179,7 @@ export const ParkingDetailsScreen = () => {
 
         <TitleContainer>
           <Skeleton
-            show={parkingDetailRequestStatus === 'pending'}
+            show={isLoading}
             height={30}
             width="100%"
             radius={8}

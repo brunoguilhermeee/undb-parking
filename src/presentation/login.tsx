@@ -1,4 +1,4 @@
-import { KeyboardAvoidingView } from '@/presentation/components/base';
+import { KeyboardAvoidingView } from './keyboaKeyboardAvoidingView';
 import { router } from 'expo-router';
 import {
   Image,

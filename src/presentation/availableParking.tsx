@@ -1,6 +1,9 @@
+import { parkingDetailsGateway } from '@/core/factory';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'expo-router';
-import { Image, SafeAreaView, Text, View } from 'react-native';
+import { Skeleton } from 'moti/skeleton';
+import { Image, SafeAreaView, Text, View, useColorScheme } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import styled, { css, useTheme } from 'styled-components';
 
@@ -25,6 +28,8 @@ export const ParkingCardContainer = styled(View)`
     border-radius: 8px;
     border: 1px solid ${theme.colors.gray[400]};
     padding: 16px;
+    width: 326px;
+    height: 155px;
   `}
 `;
 
@@ -96,44 +101,89 @@ export const ParkingCard = ({ children, href }: IParkingCardProps) => {
 };
 
 export const AvailableParkingScreen = () => {
+  const colorScheme = useColorScheme() ?? 'light';
+
+  const { isLoading, data, error } = useQuery({
+    queryKey: ['parkings'],
+    queryFn: () => parkingDetailsGateway.getAvalilableParkings(),
+  });
+
+  if (error || (!isLoading && !data)) {
+    return (
+      <Container>
+        <Text>Estacionamentos não encontrados!</Text>
+      </Container>
+    );
+  }
+
   return (
     <Container>
       <MapContainer>
-        <MapView
-          region={{
-            latitude: -2.497897,
-            longitude: -44.284582,
-            latitudeDelta: 0.0022,
-            longitudeDelta: 0.0041,
+        <Skeleton
+          show={isLoading}
+          height={155}
+          width={326}
+          radius={8}
+          colorMode={colorScheme}
+          transition={{
+            type: 'timing',
+            duration: 2000,
           }}
-          style={{ width: '100%', height: '100%' }}
         >
-          <Marker
-            coordinate={{
-              latitude: -2.497897,
-              longitude: -44.284582,
+          <MapView
+            region={{
+              latitude: data?.[0].getLatitude() as number,
+              longitude: data?.[0].getLongitude() as number,
+              latitudeDelta: 0.0022,
+              longitudeDelta: 0.0041,
             }}
-            title="Estacionamento Business Center"
-          />
-          <Marker
-            coordinate={{
-              latitude: -2.499234,
-              longitude: -44.285303,
-            }}
-            title="Estacionamento Drogasil"
-          />
-        </MapView>
+            style={{ width: '100%', height: '100%' }}
+          >
+            {data?.map(parking => (
+              <Marker
+                key={parking.getName()}
+                coordinate={{
+                  latitude: parking.getLatitude(),
+                  longitude: parking.getLongitude(),
+                }}
+                title={parking.getName()}
+              />
+            ))}
+          </MapView>
+        </Skeleton>
       </MapContainer>
 
       <Title>Estacionamentos{'\n'}disponiveis</Title>
 
       <AvailableParkingList>
-        <ParkingCard href="/parking/1">
-          Estacionamento{'\n'}Drogasil
-        </ParkingCard>
-        <ParkingCard href="/parking/2">
-          Estacionamento{'\n'}Business Center
-        </ParkingCard>
+        {isLoading &&
+          Array.from({ length: 2 }).map((_, index) => (
+            <Skeleton
+              key={index}
+              show
+              height={155}
+              width={326}
+              radius={8}
+              colorMode={colorScheme}
+              transition={{
+                type: 'timing',
+                duration: 2000,
+              }}
+            >
+              <View style={{ width: 326, height: 155 }} />
+            </Skeleton>
+          ))}
+
+        {data?.map(parking => (
+          <View key={parking.getId()} style={{ width: 326, height: 155 }}>
+            <ParkingCard
+              key={parking.getId()}
+              href={`/parking/${parking.getId()}`}
+            >
+              {parking.getFormattedName()}
+            </ParkingCard>
+          </View>
+        ))}
       </AvailableParkingList>
     </Container>
   );

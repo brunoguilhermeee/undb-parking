@@ -1,5 +1,5 @@
 import { ThemeProvider } from 'styled-components';
-import { AppTheme, theme } from '../styles/theme';
+import { AppTheme, theme } from './theme.styles';
 import { useColorScheme } from 'react-native';
 
 export function AppThemeProvider({ children }: React.PropsWithChildren) {

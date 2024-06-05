@@ -1,4 +1,4 @@
-import { AvailableParkingScreen } from '@/presentation/modules/parking/screens/availableParking';
+import { AvailableParkingScreen } from '@/presentation/availableParking';
 
 const AvailableParkingsRoute = () => {
   return <AvailableParkingScreen />;

@@ -1,4 +1,4 @@
-import { LoginScreen } from '@/presentation/modules/signin/screens/login';
+import { LoginScreen } from '@/presentation/login';
 
 const LoginRoute = () => {
   return <LoginScreen />;
