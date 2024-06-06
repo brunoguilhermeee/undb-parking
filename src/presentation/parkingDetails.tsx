@@ -47,6 +47,7 @@ const BackButton = styled(Pressable)`
 const ParkingSpacesContainer = styled(View)`
   ${({ theme }) => css`
     margin-top: ${theme.spacing['8']};
+    padding-bottom: ${theme.spacing['8']};
     align-items: center;
     justify-content: center;
     gap: ${theme.spacing[6]};

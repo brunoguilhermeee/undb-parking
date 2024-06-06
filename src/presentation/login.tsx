@@ -1,5 +1,7 @@
+import { useForm } from 'react-hook-form';
 import { KeyboardAvoidingView } from './keyboaKeyboardAvoidingView';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -9,18 +11,23 @@ import {
   View,
 } from 'react-native';
 import styled, { css } from 'styled-components';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { authGatewayHttp } from '@/core/factory';
 
 export const Container = styled(SafeAreaView)`
   flex: 1;
   align-items: center;
   justify-content: center;
   gap: ${({ theme }) => theme.spacing['10']};
+  margin-top: ${({ theme }) => theme.spacing['11']};
   font-family: ${({ theme }) => theme.font.regular};
 `;
 
 export const Input = styled(TextInput)`
   ${({ theme }) => css`
     border: 1px solid ${theme.colors.gray[700]};
+    color: 1px solid ${theme.colors.gray[400]};
     border-radius: 8px;
     padding: ${theme.spacing[4]};
   `}
@@ -97,10 +104,60 @@ export const ForgetPasswordText = styled(Text)`
   `};
 `;
 
+export const ErrorMessage = styled(Text)`
+  ${({ theme }) => css`
+    margin: ${theme.spacing[3]} auto 0;
+    color: ${theme.colors.red[500]};
+    font-size: 16px;
+    font-family: ${theme.font.medium};
+  `};
+`;
+
+export const InputError = styled(Text)`
+  ${({ theme }) => css`
+    margin: ${theme.spacing[1]} 0 0;
+    color: ${theme.colors.red[500]};
+    font-size: 12px;
+    font-family: ${theme.font.regular};
+  `};
+`;
+
+const schema = z.object({
+  registration: z.string({
+    required_error: 'Informe a matricula',
+    message: 'Matricula inválida',
+  }),
+  password: z.string({ required_error: 'Informe a senha' }),
+});
+
 export const LoginScreen = () => {
-  function handleSubmit() {
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const {
+    register,
+    handleSubmit: handleFormSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    mode: 'onChange',
+  });
+
+  const handleSubmit = handleFormSubmit(async data => {
+    // Descomentar caso queira realizar o login com a API
+    // const result = await authGatewayHttp.login(data);
+    // if (!result) {
+    //   setErrorMessage('Matricula ou senha inválida.');
+    //   return;
+    // }
+
     router.navigate('/parking/list');
-  }
+  });
+
+  useEffect(() => {
+    register('registration');
+    register('password');
+  }, [register]);
 
   return (
     <KeyboardAvoidingView>
@@ -119,11 +176,24 @@ export const LoginScreen = () => {
           <FieldsContainer>
             <View>
               <Label>Sua matrícula *</Label>
-              <Input placeholder="Digite sua matrícula" />
+              <Input
+                onChangeText={text => setValue('registration', text)}
+                placeholder="Digite sua matrícula"
+              />
+              {errors?.registration?.message && (
+                <InputError>{errors?.registration?.message}</InputError>
+              )}
             </View>
             <View>
               <Label>Senha *</Label>
-              <Input placeholder="Digite sua senha" />
+              <Input
+                onChangeText={text => setValue('password', text)}
+                secureTextEntry
+                placeholder="Digite sua senha"
+              />
+              {errors?.password?.message && (
+                <InputError>{errors?.password?.message}</InputError>
+              )}
             </View>
           </FieldsContainer>
 
@@ -135,6 +205,8 @@ export const LoginScreen = () => {
           <SubmitButton onPress={handleSubmit}>
             <SubmitButtonText>Entrar</SubmitButtonText>
           </SubmitButton>
+
+          {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
         </View>
       </Container>
     </KeyboardAvoidingView>

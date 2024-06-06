@@ -32,6 +32,7 @@ export const theme = {
     8: '40px',
     9: '48px',
     10: '64px',
+    11: '128px',
   },
   font: {
     light: 'RobotoLight',
